@@ -196,6 +196,9 @@
     </div>
 
     <script>
+        // Define API URL that can be configured for different environments
+        const API_URL = process.env.API_URL || 'http://localhost:5001';
+
         let currentSongIndex = 0;
         let songs = [];
 
@@ -228,11 +231,20 @@
             audio.currentTime = clickPosition * audio.duration;
         });
 
+        // Fetch songs from the backend
         async function fetchSongs() {
-            const response = await fetch('http://localhost:5001/api/songs');
-            songs = await response.json();
-            if (songs.length > 0) {
-                loadSong(currentSongIndex);
+            try {
+                const response = await fetch(`${API_URL}/api/songs`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                songs = await response.json();
+                if (songs.length > 0) {
+                    loadSong(currentSongIndex);
+                }
+            } catch (error) {
+                console.error('Error fetching songs:', error);
+                // You might want to show an error message to the user here
             }
         }
 
@@ -244,16 +256,24 @@
             const image = document.getElementById('track-image');
             const video = document.getElementById('video-background');
 
-            title.textContent = song.title;
-            artist.textContent = song.artist;
-            image.src = `http://localhost:5001/${song.image}`;
-            audio.src = `http://localhost:5001/${song.audio}`;
+            // Update UI with song details
+            title.textContent = song.title || 'Unknown Title';
+            artist.textContent = song.artist || 'Unknown Artist';
 
+            // Update media sources with full URLs
+            image.src = song.image ? `${API_URL}/${song.image}` : '/api/placeholder/280/280';
+            audio.src = `${API_URL}/${song.audio}`;
+
+            // Handle video background
             if (song.video) {
-                video.src = `http://localhost:5001/${song.video}`;
+                video.src = `${API_URL}/${song.video}`;
                 video.style.display = 'block';
                 video.muted = true;
-                video.play();
+                try {
+                    video.play().catch(err => console.error('Video autoplay failed:', err));
+                } catch (error) {
+                    console.error('Error playing video:', error);
+                }
             } else {
                 video.style.display = 'none';
             }
@@ -262,10 +282,22 @@
             audio.addEventListener('timeupdate', () => updateProgress(audio));
 
             // Sync video with audio
-            audio.addEventListener('play', () => video.play());
-            audio.addEventListener('pause', () => video.pause());
+            audio.addEventListener('play', () => {
+                if (song.video) {
+                    video.play().catch(err => console.error('Video play failed:', err));
+                }
+            });
+
+            audio.addEventListener('pause', () => {
+                if (song.video) {
+                    video.pause();
+                }
+            });
+
             audio.addEventListener('ended', () => {
-                video.pause();
+                if (song.video) {
+                    video.pause();
+                }
                 nextSong();
             });
         }
@@ -275,9 +307,19 @@
             const playBtn = document.getElementById('play-btn');
             const pauseBtn = document.getElementById('pause-btn');
 
-            audio.play();
-            playBtn.style.display = 'none';
-            pauseBtn.style.display = 'block';
+            try {
+                audio.play()
+                    .then(() => {
+                        playBtn.style.display = 'none';
+                        pauseBtn.style.display = 'block';
+                    })
+                    .catch(error => {
+                        console.error('Error playing audio:', error);
+                        // Handle autoplay restrictions or other errors
+                    });
+            } catch (error) {
+                console.error('Error in playSong:', error);
+            }
         }
 
         function pauseSong() {
@@ -285,18 +327,24 @@
             const playBtn = document.getElementById('play-btn');
             const pauseBtn = document.getElementById('pause-btn');
 
-            audio.pause();
-            playBtn.style.display = 'block';
-            pauseBtn.style.display = 'none';
+            try {
+                audio.pause();
+                playBtn.style.display = 'block';
+                pauseBtn.style.display = 'none';
+            } catch (error) {
+                console.error('Error in pauseSong:', error);
+            }
         }
 
         function nextSong() {
+            if (songs.length === 0) return;
             currentSongIndex = (currentSongIndex + 1) % songs.length;
             loadSong(currentSongIndex);
             playSong();
         }
 
         function prevSong() {
+            if (songs.length === 0) return;
             currentSongIndex = (currentSongIndex - 1 + songs.length) % songs.length;
             loadSong(currentSongIndex);
             playSong();
@@ -308,8 +356,10 @@
         document.getElementById('next-btn').addEventListener('click', nextSong);
         document.getElementById('prev-btn').addEventListener('click', prevSong);
 
-        // Initialize
-        fetchSongs();
+        // Initialize when document is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchSongs();
+        });
     </script>
 </body>
 
