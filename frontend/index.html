@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Music Player</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            background: black;
+        }
+
+        #video-background {
+            position: fixed;
+            right: 0;
+            bottom: 0;
+            min-width: 100%;
+            min-height: 100%;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            object-fit: cover;
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: -1;
+        }
+
+        #player {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(12px);
+            padding: 40px;
+            border-radius: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            width: 90%;
+            max-width: 380px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        #track-image {
+            width: 280px;
+            height: 280px;
+            border-radius: 20px;
+            margin: 0 auto 25px;
+            display: block;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        #track-title {
+            font-size: 1.6rem;
+            margin: 15px 0 8px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        #track-artist {
+            font-size: 1.1rem;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 25px;
+            font-weight: 400;
+        }
+
+        .progress-area {
+            height: 5px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50px;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            position: absolute;
+            border-radius: 50px;
+            background: rgba(255, 255, 255, 0.8);
+            transition: width 0.1s linear;
+        }
+
+        .time-area {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 8px;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.8rem;
+        }
+
+        #controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 30px;
+            margin-top: 25px;
+        }
+
+        .control-btn {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 24px;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+        }
+
+        #upload {
+            margin-top: 25px;
+            text-align: center;
+        }
+
+        #upload-btn {
+            text-decoration: none;
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            padding: 12px 30px;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: inline-block;
+        }
+
+        #upload-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Hide default audio player */
+        audio {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="overlay"></div>
+    <video id="video-background" loop autoplay muted>
+        <source src="/api/placeholder/1920/1080" type="video/mp4">
+    </video>
+
+    <div id="player">
+        <img id="track-image" src="/api/placeholder/280/280" alt="Track Image" />
+        <h2 id="track-title">Track Title</h2>
+        <h3 id="track-artist">Artist</h3>
+        <audio id="audio"></audio>
+
+        <div class="progress-area">
+            <div class="progress-bar"></div>
+        </div>
+        <div class="time-area">
+            <span id="current-time">0:00</span>
+            <span id="duration">0:00</span>
+        </div>
+
+        <div id="controls">
+            <button class="control-btn" id="prev-btn">⏮</button>
+            <button class="control-btn" id="play-btn">▶</button>
+            <button class="control-btn" id="pause-btn" style="display: none;">⏸</button>
+            <button class="control-btn" id="next-btn">⏭</button>
+        </div>
+
+        <div id="upload">
+            <a href="upload.html" id="upload-btn">Upload a Song</a>
+        </div>
+    </div>
+
+    <script>
+        let currentSongIndex = 0;
+        let songs = [];
+
+        // Format time in minutes and seconds
+        function formatTime(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = Math.floor(seconds % 60);
+            return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+        }
+
+        // Update progress bar and time
+        function updateProgress(audio) {
+            const progressBar = document.querySelector('.progress-bar');
+            const currentTimeSpan = document.getElementById('current-time');
+            const durationSpan = document.getElementById('duration');
+
+            const currentTime = audio.currentTime;
+            const duration = audio.duration;
+
+            progressBar.style.width = `${(currentTime / duration) * 100}%`;
+            currentTimeSpan.textContent = formatTime(currentTime);
+            durationSpan.textContent = formatTime(duration);
+        }
+
+        // Handle click on progress bar
+        document.querySelector('.progress-area').addEventListener('click', (e) => {
+            const audio = document.getElementById('audio');
+            const progressArea = e.currentTarget;
+            const clickPosition = (e.offsetX / progressArea.offsetWidth);
+            audio.currentTime = clickPosition * audio.duration;
+        });
+
+        async function fetchSongs() {
+            const response = await fetch('http://localhost:5001/api/songs');
+            songs = await response.json();
+            if (songs.length > 0) {
+                loadSong(currentSongIndex);
+            }
+        }
+
+        function loadSong(index) {
+            const song = songs[index];
+            const audio = document.getElementById('audio');
+            const title = document.getElementById('track-title');
+            const artist = document.getElementById('track-artist');
+            const image = document.getElementById('track-image');
+            const video = document.getElementById('video-background');
+
+            title.textContent = song.title;
+            artist.textContent = song.artist;
+            image.src = `http://localhost:5001/${song.image}`;
+            audio.src = `http://localhost:5001/${song.audio}`;
+
+            if (song.video) {
+                video.src = `http://localhost:5001/${song.video}`;
+                video.style.display = 'block';
+                video.muted = true;
+                video.play();
+            } else {
+                video.style.display = 'none';
+            }
+
+            // Set up progress updates
+            audio.addEventListener('timeupdate', () => updateProgress(audio));
+
+            // Sync video with audio
+            audio.addEventListener('play', () => video.play());
+            audio.addEventListener('pause', () => video.pause());
+            audio.addEventListener('ended', () => {
+                video.pause();
+                nextSong();
+            });
+        }
+
+        function playSong() {
+            const audio = document.getElementById('audio');
+            const playBtn = document.getElementById('play-btn');
+            const pauseBtn = document.getElementById('pause-btn');
+
+            audio.play();
+            playBtn.style.display = 'none';
+            pauseBtn.style.display = 'block';
+        }
+
+        function pauseSong() {
+            const audio = document.getElementById('audio');
+            const playBtn = document.getElementById('play-btn');
+            const pauseBtn = document.getElementById('pause-btn');
+
+            audio.pause();
+            playBtn.style.display = 'block';
+            pauseBtn.style.display = 'none';
+        }
+
+        function nextSong() {
+            currentSongIndex = (currentSongIndex + 1) % songs.length;
+            loadSong(currentSongIndex);
+            playSong();
+        }
+
+        function prevSong() {
+            currentSongIndex = (currentSongIndex - 1 + songs.length) % songs.length;
+            loadSong(currentSongIndex);
+            playSong();
+        }
+
+        // Event Listeners
+        document.getElementById('play-btn').addEventListener('click', playSong);
+        document.getElementById('pause-btn').addEventListener('click', pauseSong);
+        document.getElementById('next-btn').addEventListener('click', nextSong);
+        document.getElementById('prev-btn').addEventListener('click', prevSong);
+
+        // Initialize
+        fetchSongs();
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Song</title>
+    <style>
+        /* Glassmorphism effect for the upload form */
+body {
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: black;
+    font-family: Arial, sans-serif;
+}
+
+h1 {
+    text-align: center;
+    color: #ffffff;
+    font-size: 2.5em;
+    margin-top: 1em;
+    margin-bottom: 1em;
+}
+
+form {
+    width: 100%;
+    max-width: 400px;
+    padding: 2em;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.37);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    color: #ffffff;
+}
+
+label {
+    display: block;
+    font-size: 1em;
+    margin-bottom: 0.5em;
+    font-weight: bold;
+}
+
+input[type="text"],
+input[type="file"] {
+    width: calc(100% - 20px);
+    padding: 10px;
+    margin-bottom: 1em;
+    border: none;
+    border-radius: 5px;
+    background: rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+    font-size: 1em;
+    outline: none;
+}
+
+input[type="text"]::placeholder {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+button {
+    width: 100%;
+    padding: 10px;
+    font-size: 1em;
+    font-weight: bold;
+    color: #ffffff;
+    background: linear-gradient(135deg, #89f7fe, #66a6ff);
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s ease-in-out;
+}
+
+button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+@media screen and (max-width: 480px) {
+    form {
+        padding: 1.5em;
+    }
+
+    h1 {
+        font-size: 2em;
+    }
+
+    input[type="text"],
+    input[type="file"],
+    button {
+        font-size: 0.9em;
+    }
+}
+
+    </style>
+</head>
+<body>
+    <h1>Upload a Song</h1>
+    <form id="upload-form">
+        <label for="title">Title:</label>
+        <input type="text" id="title" name="title" required><br>
+        
+        <label for="artist">Artist:</label>
+        <input type="text" id="artist" name="artist" required><br>
+        
+        <label for="album">Album:</label>
+        <input type="text" id="album" name="album"><br>
+        
+        <label for="genre">Genre:</label>
+        <input type="text" id="genre" name="genre"><br>
+        
+        <label for="image">Track Image:</label>
+        <input type="file" id="image" name="image" accept="image/*" required><br>
+        
+        <label for="audio">Audio File:</label>
+        <input type="file" id="audio" name="audio" accept="audio/*" required><br>
+        
+        <label for="video">Music Video (Optional):</label>
+        <input type="file" id="video" name="video" accept="video/*"><br>
+        
+        <button type="submit">Upload</button>
+    </form>
+    <script src="upload.js"></script>
+</body>
+</html>
